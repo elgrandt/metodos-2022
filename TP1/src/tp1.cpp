@@ -3,12 +3,80 @@
 #include <map>
 #include <vector>
 #include <chrono>
+#include <set>
 
 using namespace std;
 
 struct Link {
     int from;
     int to;
+};
+
+class Cell {
+public:
+    int row;
+    int column;
+    double value;
+
+    Cell(int row, int column, int value) {
+        this->row = row;
+        this->column = column;
+        this->value = value;
+    }
+
+    
+	bool operator<(const Cell& y) const {
+        return true;
+    }
+};
+
+class SparseMatrix {
+private:
+    set<Cell> cells;
+    int width;
+    int height;
+
+public:
+
+    SparseMatrix(int width, int height) {
+        this->width = width;
+        this->height = height;
+    }
+    
+    double at(int row, int column) const {
+        if (row > this->width || column > this->height || row < 0 || column < 0) {
+            cerr << "Index fuera de rango " << row << "," << column << endl;
+            throw "Index fuera de rango";
+        }
+        for (Cell cell: cells) {
+            if (cell.row == row && cell.column == column) {
+                return cell.value;
+            }
+        }
+        return 0;
+    }
+
+    void set(int row, int column, double value) {
+        Cell cell = Cell(row, column, value);
+        this->cells.insert(cell);
+    }
+
+    int getWidth() {
+        return this->width;
+    }
+
+    int getHeight() {
+        return this->height;
+    }
+
+    friend std::ostream &operator<<(std::ostream &os, SparseMatrix const &m) {
+        for (int row = 0; row < m.height; row++) {
+            for (int col = 0; col < m.width; col++) {
+                os << m.at(row, col) << " ";
+            }
+            os << endl;
+        }
+    }
 };
 
 //--------------------------------------------MAIN-------------------------------------------------------
@@ -32,14 +100,16 @@ int main(int argc, char** argv) {
     int cant_total_links = 0;
     fin >> cant_paginas >> cant_total_links;
 
-    vector<Link> links;
+    SparseMatrix W = SparseMatrix(cant_paginas, cant_paginas);
     for (int i = 0; i < cant_total_links; ++i) {
-        Link current_link;
-        fin >> current_link.from;
-        fin >> current_link.to;
-        links.push_back(current_link);
+        int from, to;
+        fin >> from;
+        fin >> to;
+        W.set(from - 1, to - 1, 1);
     }
     fin.close();
+
+    cout << W << endl;
 
 
     // Ejecutamos el algoritmo
