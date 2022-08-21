@@ -28,12 +28,12 @@ int main(int argc, char** argv) {
 
     // Leemos el input
     fstream fin (input_file);
-    int cantPaginas = 0;
-    int cantTotalLinks = 0;
-    fin >> cantPaginas >> cantTotalLinks;
+    int cant_paginas = 0;
+    int cant_total_links = 0;
+    fin >> cant_paginas >> cant_total_links;
 
     vector<Link> links;
-    for (int i = 0; i < cantTotalLinks; ++i) {
+    for (int i = 0; i < cant_total_links; ++i) {
         Link current_link;
         fin >> current_link.from;
         fin >> current_link.to;
@@ -48,8 +48,8 @@ int main(int argc, char** argv) {
     
     ofstream fout (output_file);
     fout << p << "\n";
-    for (double currentRating: rating){
-        fout << currentRating << "\n";
+    for (double current_rating: rating){
+        fout << current_rating << "\n";
     }
     fout.close();
 
