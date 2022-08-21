@@ -6,16 +6,22 @@
 
 using namespace std;
 
+struct Link {
+    int from;
+    int to;
+};
+
 //--------------------------------------------MAIN-------------------------------------------------------
-int main(int argc, char** argv){
+int main(int argc, char** argv) {
 
     // Nos quedamos con los parametros de entrada
     string input_file;
-    double p;
+    string output_file;
+    double p = 1;
     if (argc >= 2) {
         input_file = argv[1];
-        p = argv[2];
-    }else {
+        output_file = argv[2];
+    } else {
         cerr<<"Ingreso incorrecto de parametros, uso correcto es /TP1 txtInput txtOutput" <<endl;
         return 0;
     }
@@ -28,20 +34,22 @@ int main(int argc, char** argv){
 
     vector<Link> links;
     for (int i = 0; i < cantTotalLinks; ++i) {
-        Link unLink;
-        fin >> unLink.paginaSaliente;
-        fin >> unLink.paginaEntrante;
-        links.push_back(unLink);
+        Link current_link;
+        fin >> current_link.from;
+        fin >> current_link.to;
+        links.push_back(current_link);
     }
     fin.close();
 
 
     // Ejecutamos el algoritmo
+    vector<double> rating;
     
     
-    ofstream fout (p);
-    for (double rating: results){
-        fout << rating << "\n";
+    ofstream fout (output_file);
+    fout << p << "\n";
+    for (double currentRating: rating){
+        fout << currentRating << "\n";
     }
     fout.close();
 
