@@ -12,27 +12,15 @@ struct Link {
     int to;
 };
 
-class Cell {
-public:
+struct Cell {
     int row;
     int column;
     double value;
-
-    Cell(int row, int column, int value) {
-        this->row = row;
-        this->column = column;
-        this->value = value;
-    }
-
-    
-	bool operator<(const Cell& y) const {
-        return true;
-    }
 };
 
 class SparseMatrix {
 private:
-    set<Cell> cells;
+    vector<Cell> cells;
     int width;
     int height;
 
@@ -57,8 +45,23 @@ public:
     }
 
     void set(int row, int column, double value) {
-        Cell cell = Cell(row, column, value);
-        this->cells.insert(cell);
+        int index;
+        for (auto it = this->cells.begin(); it != this->cells.end(); ++it) {
+            if (it->row == row && it->column == column) {
+                if (value == 0) {
+                    this->cells.erase(it);
+                } else {
+                    it->value = value;
+                }
+                return;
+            }
+            index++;
+        }
+        Cell new_cell;
+        new_cell.row = row;
+        new_cell.column = column;
+        new_cell.value = value;
+        this->cells.push_back(new_cell);
     }
 
     int getWidth() {
@@ -109,7 +112,11 @@ int main(int argc, char** argv) {
     }
     fin.close();
 
-    cout << W << endl;
+    cout << W;
+    cout << "<<<<<<<<<<<<<<<<<<<" << endl;
+    W.set(0, 2, 0.4);
+    W.set(0, 3, 0);
+    cout << W;
 
 
     // Ejecutamos el algoritmo
