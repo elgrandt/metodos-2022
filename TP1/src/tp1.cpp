@@ -3,6 +3,7 @@
 #include <vector>
 #include <assert.h>
 #include <cmath>
+#include <string>
 
 using namespace std;
 
@@ -57,7 +58,6 @@ public:
     }
 
     void set(int row, int column, double value) {
-        if (almost_equals(value, 0)) return;
         int index;
         for (auto it = this->cells.begin(); it != this->cells.end(); ++it) {
             if (it->row == row && it->column == column) {
@@ -70,6 +70,7 @@ public:
             }
             index++;
         }
+        if (almost_equals(value, 0)) return;
         Cell new_cell;
         new_cell.row = row;
         new_cell.column = column;
@@ -199,18 +200,76 @@ public:
     }
 };
 
+void FiMinusFjK(SparseMatrix &A, int fila1, int fila2, double multiplicador) {
+    for (int col = 0; col < A.getWidth(); col++) {
+        A.set(fila1, col, A.at(fila1, col) - A.at(fila2, col) * multiplicador);
+    }
+}
+
+void eliminacion_gaussiana(SparseMatrix &A, vector<double> &b) {
+    for (int col = 0; col < A.getWidth(); col++) {
+        for (int fila = col + 1; fila < A.getHeight(); fila++) {
+            // Fx - c * Fy
+            double diagonal = A.at(col, col);
+            assert(!almost_equals(diagonal, 0));
+            double c = A.at(fila, col) / diagonal;
+            int Fx = fila;
+            int Fy = col;
+            if (!almost_equals(c, 0)) {
+                FiMinusFjK(A, Fx, Fy, c);
+                b[Fx] -= b[Fy] * c;
+            }
+        }
+    }
+}
+
+double resolver_ecuacion_fila_i(SparseMatrix &A, vector<double> &b, int fila, vector<double> &respuestas){
+    double solucion = b[fila];
+    for (int columna = A.getWidth() - 1; columna > fila; columna--) {
+        solucion -= A.at(fila, columna) * respuestas[columna];
+    }
+    return solucion/A.at(fila, fila);
+}
+
+vector<double> resolucion_matriz_triangular_superior(SparseMatrix &A, vector<double> &b){
+    vector<double> respuestas = vector<double>(A.getHeight());
+    for (int fila = A.getHeight() - 1; fila >= 0; fila--){
+        respuestas[fila] = resolver_ecuacion_fila_i(A, b, fila, respuestas);
+    }
+    return respuestas;
+}
+
+void mostrar_vector(vector<double> &v) {
+    cout << "[";
+    for (int i = 0; i < v.size(); i++) {
+        cout << v[i];
+        if (i != v.size() - 1)
+            cout << ", ";
+    }
+    cout << "]" << endl;
+}
+
+void normalizar_vector(vector<double> &v) {
+    double sum = 0;
+    for (int i = 0; i < v.size(); i++) {
+        sum += v[i];
+    }
+    for (int i = 0; i < v.size(); i++) {
+        v[i] = v[i]/sum;
+    }
+}
+
 //--------------------------------------------MAIN-------------------------------------------------------
 int main(int argc, char** argv) {
 
     // Nos quedamos con los parametros de entrada
     string input_file;
-    string output_file;
     double p = 1;
     if (argc >= 2) {
         input_file = argv[1];
-        output_file = argv[2];
+        p = stod(argv[2]);
     } else {
-        cerr<<"Ingreso incorrecto de parametros, uso correcto es /TP1 txtInput txtOutput" <<endl;
+        cerr<<"Ingreso incorrecto de parametros, uso correcto es /TP1 txtInput p" <<endl;
         return 0;
     }
 
@@ -220,36 +279,56 @@ int main(int argc, char** argv) {
     int cant_total_links = 0;
     fin >> cant_paginas >> cant_total_links;
 
-    SparseMatrix W = SparseMatrix(cant_paginas, cant_paginas);
+    vector<double> d(cant_paginas, 0);
+    SparseMatrix pW = SparseMatrix(cant_paginas, cant_paginas);
     for (int i = 0; i < cant_total_links; ++i) {
         int from, to;
         fin >> from;
         fin >> to;
-        W.blind_set(from - 1, to - 1, 1);
+        pW.blind_set(to - 1, from - 1, p);
+        d[from-1]++;
     }
     fin.close();
-
-    cout << W;
-    cout << "*" << endl;
-    SparseMatrix D = SparseMatrix(cant_paginas, cant_paginas);
-    for (int x = 0; x <  cant_paginas; x++) {
-        D.blind_set(x, x, x+1);
+    // Hacemos Di = 1/Di
+    for (int i = 0; i < cant_paginas; i++) {
+        if (d[i] != 0)
+            d[i] = 1.0/d[i];
     }
-    cout << D;
-    cout << "<<<<<<<<<<<<<<<<<<<" << endl;
-    vector<double> v = {1,2,3,4,5};
-    SparseMatrix H = W * D;
-    // SparseMatrix H = W.multiply_columns(v);
-    cout << H;
+    
+    SparseMatrix pWD = pW.multiply_columns(d);
 
+    SparseMatrix identity(cant_paginas, cant_paginas);
+    for (int i = 0; i < cant_paginas; i++) {
+        identity.blind_set(i, i, 1);
+    }
 
-    // Ejecutamos el algoritmo
-    vector<double> rating;
+    SparseMatrix IpWD = identity - pWD;
+
+    // Resolver sistemas de IpWD = (1, 1, ..., 1);
+    cout << "W:" << endl;
+    cout << pW;
+    cout << "I - pWD:" << endl;
+    cout << IpWD;
+    vector<double> b(cant_paginas, 1);
+    // Eliminación gaussiana
+    eliminacion_gaussiana(IpWD, b);
+    cout << "Matriz resultante de eliminacion gaussiana:" << endl;
+    cout << IpWD;
+    cout << "b resultante de eliminacion gaussiana: ";
+    mostrar_vector(b);
+    // Resolvemos la matriz triangular resultante de la eliminación gaussiana
+    vector<double> respuestas = resolucion_matriz_triangular_superior(IpWD, b);
+    cout << "Respuestas: ";
+    mostrar_vector(respuestas);
+    // Normalizamos el vector respuestas
+    normalizar_vector(respuestas);
+    cout << "Respuestas normalizadas: ";
+    mostrar_vector(respuestas);
     
     
-    ofstream fout (output_file);
+    ofstream fout (input_file + ".out");
     fout << p << "\n";
-    for (double current_rating: rating){
+    for (double current_rating: respuestas){
         fout << current_rating << "\n";
     }
     fout.close();
