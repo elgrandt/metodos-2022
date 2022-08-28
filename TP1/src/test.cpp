@@ -2,27 +2,38 @@
 #include <unordered_map>
 using namespace std;
 
-struct Cell {
+struct Position {
     int row;
     int column;
-    double value;
-};
 
-typedef const tuple<int, int> coordinates;
+    Position() {}
+    Position(int row, int column): row(row), column(column) {}
+    Position(const Position& other): row(other.row), column(other.column) {}
 
-struct key_hash {
-    hash<string> hasher;
-    size_t operator()(const string& k) const {
-        return hasher(k);
+    bool operator==(const Position& other) const {
+        return this->row == other.row && this->column == other.column;
     }
+
+    struct HashFunction {
+        size_t operator()(const Position& position) const {
+            size_t rowHash = std::hash<int>()(position.row);
+            size_t colHash = std::hash<int>()(position.column) << 1;
+            return rowHash ^ colHash;
+        }
+    };
 };
 
 int main() {
-    unordered_map<string, double, key_hash> t;
-    t["hola"] = 5.2;
+    unordered_map<Position, double, Position::HashFunction> values;
+    values[Position(0, 0)] = 5.2;
+    try {
+        cout << values.at(Position(0, 1)) << endl;
+    } catch(out_of_range e) {
+        cout << "Valor intexistente" << endl;
+    }
     
-    // for (pair<const string, CellV2> c:t) {
-    //     cout << c.first << endl;
-    // }
+    for (auto &current:values) {
+        cout << "(" << current.first.row << ", " << current.first.column << "): " << current.second << endl;
+    }
     return 0;
 }
