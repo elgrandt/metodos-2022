@@ -320,7 +320,7 @@ int main(int argc, char** argv) {
         fin >> from;
         fin >> to;
         pW.blind_set(to - 1, from - 1, p);
-        d[to-1]++;
+        d[from-1]++;
     }
     fin.close();
     // Hacemos Di = 1/Di
