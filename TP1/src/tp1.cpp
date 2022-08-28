@@ -55,8 +55,8 @@ long double at_delay_sum = 0;
 long double at_execution_times = 0;
 long double set_delay_sum = 0;
 long double set_execution_times = 0;
-long double FiMinusFjKp1_delay_sum = 0;
-long double FiMinusFjKp1_execution_times = 0;
+long double FiMinusFjKp_delay_sum = 0;
+long double FiMinusFjKp_execution_times = 0;
 long double FiMinusFjKp2_delay_sum = 0;
 long double FiMinusFjKp2_execution_times = 0;
 
@@ -195,27 +195,18 @@ public:
         return response;
     }
 
-    void FiMinusFjK(int fila1, int fila2, double multiplicador) {
+    void Fi_minus_Fj_k(int fila1, int fila2, double multiplicador) {
         auto start = chrono::steady_clock::now();
         // TODO Averiguar cómo se puede mejorar la eficiencia de esto
-        auto modifiedColumns = std::set<int>();
         for (PositionValuePair cell: cells) {
-            if (cell.first.row == fila1 || cell.first.row == fila2) {
-                modifiedColumns.insert(cell.first.column);
+            if (cell.first.row == fila2) {
+                this->set(fila1, cell.first.column, this->at(fila1, cell.first.column) - cell.second * multiplicador);
             }
         }
         auto end = chrono::steady_clock::now();
-        auto nanoseconds1 = chrono::duration_cast<chrono::nanoseconds>(end - start).count();
-        FiMinusFjKp1_delay_sum += nanoseconds1;
-        FiMinusFjKp1_execution_times++;
-        auto start2 = chrono::steady_clock::now();
-        for (int column: modifiedColumns) {
-            this->set(fila1, column, this->at(fila1, column) - this->at(fila2, column) * multiplicador);
-        }
-        auto end2 = chrono::steady_clock::now();
-        auto nanoseconds2 = chrono::duration_cast<chrono::nanoseconds>(end2 - start2).count();
-        FiMinusFjKp2_delay_sum += nanoseconds2;
-        FiMinusFjKp2_execution_times++;
+        auto nanoseconds = chrono::duration_cast<chrono::nanoseconds>(end - start).count();
+        FiMinusFjKp_delay_sum += nanoseconds;
+        FiMinusFjKp_execution_times++;
     }
 
     void debug() {
@@ -223,22 +214,21 @@ public:
         cout << "Tamano del hash table: " << this->cells.size() << endl;
         cout << "AT Function average time (nanoseconds): " << at_delay_sum / at_execution_times << endl;
         cout << "SET Function average time (nanoseconds): " << set_delay_sum / set_execution_times << endl;
-        cout << "FiMinusFjK part 1 Function average time (nanoseconds): " << FiMinusFjKp1_delay_sum / FiMinusFjKp1_execution_times << endl;
-        cout << "FiMinusFjK part 2 Function average time (nanoseconds): " << FiMinusFjKp2_delay_sum / FiMinusFjKp2_execution_times << endl;
+        cout << "Fi_minus_Fj_k Function average time (nanoseconds): " << FiMinusFjKp_delay_sum / FiMinusFjKp_execution_times << endl;
         cout << "<<<<<<<<<<< DEBUG <<<<<<<<<<<" << endl;
         at_delay_sum = 0;
         set_delay_sum = 0;
-        FiMinusFjKp1_delay_sum = 0;
+        FiMinusFjKp_delay_sum = 0;
         FiMinusFjKp2_delay_sum = 0;
         at_execution_times = 0;
         set_execution_times = 0;
-        FiMinusFjKp1_execution_times = 0;
+        FiMinusFjKp_execution_times = 0;
         FiMinusFjKp2_execution_times = 0;
     }
 };
 
 // Deprecada por ineficiente :(
-// void FiMinusFjK(SparseMatrix &A, int fila1, int fila2, double multiplicador) {
+// void Fi_minus_Fj_k(SparseMatrix &A, int fila1, int fila2, double multiplicador) {
 //     for (int col = 0; col < A.getWidth(); col++) {
 //         A.set(fila1, col, A.at(fila1, col) - A.at(fila2, col) * multiplicador);
 //     }
@@ -260,8 +250,8 @@ void eliminacion_gaussiana(SparseMatrix &A, vector<double> &b) {
             int Fy = col;
             if (!almost_equals(c, 0)) {
                 // cout << "Aplicando F" << Fx+1 << " = F" << Fx+1 << " - " << c << " * F" << Fy+1 << endl;
-                A.FiMinusFjK(Fx, Fy, c);
-                // FiMinusFjK(A, Fx, Fy, c);
+                A.Fi_minus_Fj_k(Fx, Fy, c);
+                // Fi_minus_Fj_k(A, Fx, Fy, c);
                 b[Fx] -= b[Fy] * c;
             }
         }
@@ -372,7 +362,7 @@ int main(int argc, char** argv) {
     // cout << "Respuestas: ";
     // mostrar_vector(respuestas);
     // Normalizamos el vector respuestas
-    // normalizar_vector(respuestas);
+    normalizar_vector(respuestas);
     // cout << "Respuestas normalizadas: ";
     // mostrar_vector(respuestas);
     IpWD.debug();
