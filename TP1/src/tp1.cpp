@@ -55,8 +55,10 @@ long double at_delay_sum = 0;
 long double at_execution_times = 0;
 long double set_delay_sum = 0;
 long double set_execution_times = 0;
-long double FiMinusFjK_delay_sum = 0;
-long double FiMinusFjK_execution_times = 0;
+long double FiMinusFjKp1_delay_sum = 0;
+long double FiMinusFjKp1_execution_times = 0;
+long double FiMinusFjKp2_delay_sum = 0;
+long double FiMinusFjKp2_execution_times = 0;
 
 class SparseMatrix {
 private:
@@ -202,13 +204,18 @@ public:
                 modifiedColumns.insert(cell.first.column);
             }
         }
+        auto end = chrono::steady_clock::now();
+        auto nanoseconds1 = chrono::duration_cast<chrono::nanoseconds>(end - start).count();
+        FiMinusFjKp1_delay_sum += nanoseconds1;
+        FiMinusFjKp1_execution_times++;
+        auto start2 = chrono::steady_clock::now();
         for (int column: modifiedColumns) {
             this->set(fila1, column, this->at(fila1, column) - this->at(fila2, column) * multiplicador);
         }
-        auto end = chrono::steady_clock::now();
-        auto nanoseconds = chrono::duration_cast<chrono::nanoseconds>(end - start).count();
-        FiMinusFjK_delay_sum += nanoseconds;
-        FiMinusFjK_execution_times++;
+        auto end2 = chrono::steady_clock::now();
+        auto nanoseconds2 = chrono::duration_cast<chrono::nanoseconds>(end2 - start2).count();
+        FiMinusFjKp2_delay_sum += nanoseconds2;
+        FiMinusFjKp2_execution_times++;
     }
 
     void debug() {
@@ -216,14 +223,17 @@ public:
         cout << "Tamano del hash table: " << this->cells.size() << endl;
         cout << "AT Function average time (nanoseconds): " << at_delay_sum / at_execution_times << endl;
         cout << "SET Function average time (nanoseconds): " << set_delay_sum / set_execution_times << endl;
-        cout << "FiMinusFjK Function average time (nanoseconds): " << FiMinusFjK_delay_sum / FiMinusFjK_execution_times << endl;
+        cout << "FiMinusFjK part 1 Function average time (nanoseconds): " << FiMinusFjKp1_delay_sum / FiMinusFjKp1_execution_times << endl;
+        cout << "FiMinusFjK part 2 Function average time (nanoseconds): " << FiMinusFjKp2_delay_sum / FiMinusFjKp2_execution_times << endl;
         cout << "<<<<<<<<<<< DEBUG <<<<<<<<<<<" << endl;
         at_delay_sum = 0;
         set_delay_sum = 0;
-        FiMinusFjK_delay_sum = 0;
+        FiMinusFjKp1_delay_sum = 0;
+        FiMinusFjKp2_delay_sum = 0;
         at_execution_times = 0;
         set_execution_times = 0;
-        FiMinusFjK_execution_times = 0;
+        FiMinusFjKp1_execution_times = 0;
+        FiMinusFjKp2_execution_times = 0;
     }
 };
 
@@ -236,8 +246,9 @@ public:
 
 void eliminacion_gaussiana(SparseMatrix &A, vector<double> &b) {
     for (int col = 0; col < A.getWidth(); col++) {
-        if (col % 1 == 0) {
+        if (col % 100 == 0) {
             cout << "Eliminacion gaussiana, columna " << col << endl;
+            A.debug();
             // cout << A;
         }
         double diagonal = A.at(col, col);
@@ -248,7 +259,7 @@ void eliminacion_gaussiana(SparseMatrix &A, vector<double> &b) {
             int Fx = fila;
             int Fy = col;
             if (!almost_equals(c, 0)) {
-                cout << "Aplicando F" << Fx+1 << " = F" << Fx+1 << " - " << c << " * F" << Fy+1 << endl;
+                // cout << "Aplicando F" << Fx+1 << " = F" << Fx+1 << " - " << c << " * F" << Fy+1 << endl;
                 A.FiMinusFjK(Fx, Fy, c);
                 // FiMinusFjK(A, Fx, Fy, c);
                 b[Fx] -= b[Fy] * c;
@@ -339,31 +350,31 @@ int main(int argc, char** argv) {
     SparseMatrix IpWD = identity - pWD;
 
     // Resolver sistemas de IpWD = (1, 1, ..., 1);
-    cout << "pW:" << endl;
-    cout << pW;
-    cout << "D (la diagonal):" << endl;
-    mostrar_vector(d);
-    cout << "pWD:" << endl;
-    cout << pWD;
-    cout << "I - pWD:" << endl;
-    cout << IpWD;
+    // cout << "pW:" << endl;
+    // cout << pW;
+    // cout << "D (la diagonal):" << endl;
+    // mostrar_vector(d);
+    // cout << "pWD:" << endl;
+    // cout << pWD;
+    // cout << "I - pWD:" << endl;
+    // cout << IpWD;
     vector<double> b(cant_paginas, 1);
     // Eliminación gaussiana
     cout << "Iniciando eliminacion gaussiana" << endl;
     eliminacion_gaussiana(IpWD, b);
-    cout << "Matriz resultante de eliminacion gaussiana:" << endl;
-    cout << IpWD;
-    cout << "b resultante de eliminacion gaussiana: ";
-    mostrar_vector(b);
+    // cout << "Matriz resultante de eliminacion gaussiana:" << endl;
+    // cout << IpWD;
+    // cout << "b resultante de eliminacion gaussiana: ";
+    // mostrar_vector(b);
     // Resolvemos la matriz triangular resultante de la eliminación gaussiana
     cout << "Iniciando resolucion sistema triangular" << endl;
     vector<double> respuestas = resolucion_matriz_triangular_superior(IpWD, b);
-    cout << "Respuestas: ";
-    mostrar_vector(respuestas);
+    // cout << "Respuestas: ";
+    // mostrar_vector(respuestas);
     // Normalizamos el vector respuestas
-    normalizar_vector(respuestas);
-    cout << "Respuestas normalizadas: ";
-    mostrar_vector(respuestas);
+    // normalizar_vector(respuestas);
+    // cout << "Respuestas normalizadas: ";
+    // mostrar_vector(respuestas);
     IpWD.debug();
     
     
