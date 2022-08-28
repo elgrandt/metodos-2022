@@ -198,9 +198,14 @@ public:
     void Fi_minus_Fj_k(int fila1, int fila2, double multiplicador) {
         auto start = chrono::steady_clock::now();
         // TODO Averiguar cómo se puede mejorar la eficiencia de esto
-        for (PositionValuePair cell: cells) {
-            if (cell.first.row == fila2) {
-                this->set(fila1, cell.first.column, this->at(fila1, cell.first.column) - cell.second * multiplicador);
+        // for (PositionValuePair cell: cells) {
+        //     if (cell.first.row == fila2) {
+        //         this->set(fila1, cell.first.column, this->at(fila1, cell.first.column) - cell.second * multiplicador);
+        //     }
+        // }
+        for (int col = 0; col < this->width; col++) {
+            if (this->cells.count(Position(fila2, col)) != 0) {
+                this->set(fila1, col, this->at(fila1, col) - this->at(fila2, col) * multiplicador);
             }
         }
         auto end = chrono::steady_clock::now();
@@ -296,6 +301,7 @@ void normalizar_vector(vector<double> &v) {
 
 //--------------------------------------------MAIN-------------------------------------------------------
 int main(int argc, char** argv) {
+    auto start = chrono::steady_clock::now();
 
     // Nos quedamos con los parametros de entrada
     string input_file;
@@ -374,6 +380,10 @@ int main(int argc, char** argv) {
         fout << current_rating << "\n";
     }
     fout.close();
+
+    auto end = chrono::steady_clock::now();
+    auto nanoseconds = chrono::duration_cast<chrono::nanoseconds>(end - start).count();
+    cout << "Execution time (nanoseconds): " << nanoseconds << endl;
 
     return 0;
 }
