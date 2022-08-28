@@ -188,7 +188,7 @@ public:
         assert(by.size() == this->width);
         SparseMatrix response = SparseMatrix(this->width, this->height);
         for (PositionValuePair cell: cells) {
-            response.blind_set(cell.first.row, cell.first.column, cell.second * by[cell.first.row]);
+            response.blind_set(cell.first.row, cell.first.column, cell.second * by[cell.first.column]);
         }
         return response;
     }
@@ -320,7 +320,7 @@ int main(int argc, char** argv) {
         fin >> from;
         fin >> to;
         pW.blind_set(to - 1, from - 1, p);
-        d[from-1]++;
+        d[to-1]++;
     }
     fin.close();
     // Hacemos Di = 1/Di
@@ -343,6 +343,8 @@ int main(int argc, char** argv) {
     cout << pW;
     cout << "D (la diagonal):" << endl;
     mostrar_vector(d);
+    cout << "pWD:" << endl;
+    cout << pWD;
     cout << "I - pWD:" << endl;
     cout << IpWD;
     vector<double> b(cant_paginas, 1);
