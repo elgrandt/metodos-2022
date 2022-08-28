@@ -4,6 +4,7 @@
 #include <assert.h>
 #include <cmath>
 #include <string>
+#include <unordered_map>
 
 using namespace std;
 
@@ -11,20 +12,29 @@ bool almost_equals(double a, double b) {
     return fabs(a - b) < 10e-6;
 }
 
+typedef pair<int, int> Key;
+
+struct KeyHash {
+    hash<string> hasher;
+    size_t operator()(const Key& k) const {
+        return hasher(to_string(k.first) + "," + to_string(k.second));
+    }
+};
+
 struct Link {
     int from;
     int to;
 };
 
-struct Cell {
-    int row;
-    int column;
-    double value;
-};
+// struct Cell {
+//     int row;
+//     int column;
+//     double value;
+// };
 
 class SparseMatrix {
 private:
-    vector<Cell> cells;
+    unordered_map<Key, double, KeyHash> cells;
     int width;
     int height;
 
@@ -40,42 +50,24 @@ public:
         assert(row >= 0);
         assert(column < this->height);
         assert(column >= 0);
-        for (Cell cell: cells) {
-            if (cell.row == row && cell.column == column) {
-                return cell.value;
-            }
+        try {
+            this->cells.at(Key(row, column));
+        } catch(out_of_range e) {
+            return 0;
         }
-        return 0;
     }
 
     void blind_set(int row, int column, double value) {
         if (almost_equals(value, 0)) return;
-        Cell new_cell;
-        new_cell.row = row;
-        new_cell.column = column;
-        new_cell.value = value;
-        this->cells.push_back(new_cell);
+        this->cells[Key(row, column)] = value;
     }
 
     void set(int row, int column, double value) {
-        int index;
-        for (auto it = this->cells.begin(); it != this->cells.end(); ++it) {
-            if (it->row == row && it->column == column) {
-                if (almost_equals(value, 0)) {
-                    this->cells.erase(it);
-                } else {
-                    it->value = value;
-                }
-                return;
-            }
-            index++;
+        if (almost_equals(value, 0)) {
+            this->cells.erase(Key(row, column));
+        } else {
+            this->blind_set(row, column, value);
         }
-        if (almost_equals(value, 0)) return;
-        Cell new_cell;
-        new_cell.row = row;
-        new_cell.column = column;
-        new_cell.value = value;
-        this->cells.push_back(new_cell);
     }
 
     int getWidth() {
@@ -96,70 +88,64 @@ public:
         return os;
     }
 
-    SparseMatrix operator+(SparseMatrix const &a) {
-        assert(this->width == a.width);
-        assert(this->height == a.height);
-        SparseMatrix response = SparseMatrix(this->width, this->height);
-        vector<Cell> modifyingCells(this->cells.begin(), this->cells.end());
-        modifyingCells.insert(modifyingCells.end(), a.cells.begin(), a.cells.end());
+    // SparseMatrix operator+(SparseMatrix const &a) {
+    //     assert(this->width == a.width);
+    //     assert(this->height == a.height);
+    //     SparseMatrix response = SparseMatrix(this->width, this->height);
+    //     vector<Cell> modifyingCells(this->cells.begin(), this->cells.end());
+    //     modifyingCells.insert(modifyingCells.end(), a.cells.begin(), a.cells.end());
         
-        while (modifyingCells.size() > 0) {
-            Cell current = modifyingCells.back();
-            modifyingCells.pop_back();
-            Cell other = Cell();
-            other.value = 0;
-            for (int i = 0; i < modifyingCells.size(); i++) {
-                Cell cell = modifyingCells[i];
-                if (cell.row == current.row && cell.column == current.column) {
-                    other = cell;
-                    modifyingCells.erase(modifyingCells.begin() + i);
-                    break;
-                }
-            }
-            response.blind_set(current.row, current.column, current.value + other.value);
-        }
-        return response;
-    }
+    //     while (modifyingCells.size() > 0) {
+    //         Cell current = modifyingCells.back();
+    //         modifyingCells.pop_back();
+    //         Cell other = Cell();
+    //         other.value = 0;
+    //         for (int i = 0; i < modifyingCells.size(); i++) {
+    //             Cell cell = modifyingCells[i];
+    //             if (cell.row == current.row && cell.column == current.column) {
+    //                 other = cell;
+    //                 modifyingCells.erase(modifyingCells.begin() + i);
+    //                 break;
+    //             }
+    //         }
+    //         response.blind_set(current.row, current.column, current.value + other.value);
+    //     }
+    //     return response;
+    // }
 
     SparseMatrix operator-(SparseMatrix const &a) {
         assert(this->width == a.width);
         assert(this->height == a.height);
         SparseMatrix response = SparseMatrix(this->width, this->height);
-        vector<Cell> modifyingCells(this->cells.begin(), this->cells.end());
-        for (int i = 0; i < a.cells.size(); i++) {
-            Cell cell = Cell();
-            cell.row = a.cells[i].row;
-            cell.column = a.cells[i].column;
-            cell.value = -a.cells[i].value;
-            modifyingCells.push_back(cell);
+        vector<pair<Key, double>> modifyingCells = vector<pair<Key, double>>();
+        for (const pair<const Key, double> c: this->cells) {
+            modifyingCells.push_back(pair<Key, double>(c));
+        }
+        for (const pair<const Key, double> c: a.cells) {
+            modifyingCells.push_back(pair<Key, double>(c));
         }
         
         while (modifyingCells.size() > 0) {
-            Cell current = modifyingCells.back();
+            pair<Key, double> current = modifyingCells.back();
             modifyingCells.pop_back();
-            Cell other = Cell();
-            other.value = 0;
+            double value = 0;
             for (int i = 0; i < modifyingCells.size(); i++) {
-                Cell cell = modifyingCells[i];
-                if (cell.row == current.row && cell.column == current.column) {
-                    other = cell;
+                pair<Key, double> key = modifyingCells[i];
+                if (key.first.first == current.first.first && key.first.second == current.first.second) {
+                    value = key.second;
                     modifyingCells.erase(modifyingCells.begin() + i);
                     break;
                 }
             }
-            response.blind_set(current.row, current.column, current.value + other.value);
+            response.blind_set(current.first.first, current.first.second, current.second + value);
         }
         return response;
     }
 
     SparseMatrix operator*(double const &a) {
         SparseMatrix response = SparseMatrix(this->width, this->height);
-        for (Cell cell: cells) {
-            Cell newCell = Cell();
-            newCell.row = cell.row;
-            newCell.column = cell.column;
-            newCell.value = cell.value * a;
-            response.cells.push_back(newCell);
+        for (pair<const Key, double> cell: cells) {
+            response.blind_set(cell.first.first, cell.first.second, cell.second * a);
         }
         return response;
     }
@@ -183,8 +169,8 @@ public:
     SparseMatrix multiply_rows(vector<double>& by) {
         assert(by.size() == this->height);
         SparseMatrix response = SparseMatrix(this->width, this->height);
-        for (Cell cell: cells) {
-            response.blind_set(cell.row, cell.column, cell.value * by[cell.row]);
+        for (pair<const Key, double> cell: cells) {
+            response.blind_set(cell.first.first, cell.first.second, cell.second * by[cell.first.first]);
         }
         return response;
     }
@@ -193,11 +179,19 @@ public:
     SparseMatrix multiply_columns(vector<double>& by) {
         assert(by.size() == this->width);
         SparseMatrix response = SparseMatrix(this->width, this->height);
-        for (Cell cell: cells) {
-            response.blind_set(cell.row, cell.column, cell.value * by[cell.column]);
+        for (pair<const Key, double> cell: cells) {
+            response.blind_set(cell.first.first, cell.first.second, cell.second * by[cell.first.first]);
         }
         return response;
     }
+
+    // void FiMinusFjK(int fila1, int fila2, double multiplicador) {
+    //     for (int i = 0; i < this->cells.size(); i++) {
+    //         if (this->cells[i].row == fila1) {
+    //             this->cells[i].value -= multiplicador * this->at(fila2, this->cells[i].column);
+    //         }
+    //     }
+    // }
 };
 
 void FiMinusFjK(SparseMatrix &A, int fila1, int fila2, double multiplicador) {
@@ -208,6 +202,7 @@ void FiMinusFjK(SparseMatrix &A, int fila1, int fila2, double multiplicador) {
 
 void eliminacion_gaussiana(SparseMatrix &A, vector<double> &b) {
     for (int col = 0; col < A.getWidth(); col++) {
+        cout << "Eliminacion gaussiana, columna " << col << endl;
         for (int fila = col + 1; fila < A.getHeight(); fila++) {
             // Fx - c * Fy
             double diagonal = A.at(col, col);
@@ -216,6 +211,7 @@ void eliminacion_gaussiana(SparseMatrix &A, vector<double> &b) {
             int Fx = fila;
             int Fy = col;
             if (!almost_equals(c, 0)) {
+                // A.FiMinusFjK(Fx, Fy, c);
                 FiMinusFjK(A, Fx, Fy, c);
                 b[Fx] -= b[Fy] * c;
             }
@@ -311,12 +307,14 @@ int main(int argc, char** argv) {
     cout << IpWD;
     vector<double> b(cant_paginas, 1);
     // Eliminación gaussiana
+    cout << "Iniciando eliminacion gaussiana" << endl;
     eliminacion_gaussiana(IpWD, b);
     cout << "Matriz resultante de eliminacion gaussiana:" << endl;
     cout << IpWD;
     cout << "b resultante de eliminacion gaussiana: ";
     mostrar_vector(b);
     // Resolvemos la matriz triangular resultante de la eliminación gaussiana
+    cout << "Iniciando resolucion sistema triangular" << endl;
     vector<double> respuestas = resolucion_matriz_triangular_superior(IpWD, b);
     cout << "Respuestas: ";
     mostrar_vector(respuestas);
