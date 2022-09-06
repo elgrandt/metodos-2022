@@ -373,8 +373,8 @@ int main(int argc, char** argv) {
     // mostrar_vector(respuestas);
     IpWD.debug();
     
-    
-    ofstream fout (input_file + ".out");
+    string input_file_name = input_file.substr(input_file.find_last_of("/\\") + 1);
+    ofstream fout (input_file_name + ".out");
     fout << p << "\n";
     for (double current_rating: respuestas){
         fout << current_rating << "\n";
