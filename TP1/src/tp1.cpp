@@ -4,78 +4,108 @@
 #include <assert.h>
 #include <cmath>
 #include <string>
-
+#include <unordered_map>
+#include <iomanip>
+#include <set>
+#include <chrono>
 using namespace std;
 
 bool almost_equals(double a, double b) {
-    return fabs(a - b) < 10e-6;
+    return fabs(a - b) < 10e-4;
 }
 
-struct Link {
-    int from;
-    int to;
-};
-
-struct Cell {
+struct Position {
     int row;
     int column;
-    double value;
+
+    Position() {}
+    Position(int row, int column): row(row), column(column) {}
+    Position(const Position& other): row(other.row), column(other.column) {}
+
+    bool operator==(const Position& other) const {
+        return this->row == other.row && this->column == other.column;
+    }
+
+    void operator=(const Position& other) {
+        this->row = other.row;
+        this->column = other.column;
+    }
+
+    bool operator<(const Position& other) const {
+        if (this->row < other.row) {
+            return true;
+        } else if (this->row == other.row && this->column < other.column) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    struct HashFunction {
+        size_t operator()(const Position& position) const {
+            size_t rowHash = std::hash<int>()(position.row);
+            size_t colHash = std::hash<int>()(position.column) << 1;
+            return rowHash ^ colHash;
+        }
+    };
 };
+
+typedef pair<const Position, double> PositionValuePair;
+long double at_delay_sum = 0;
+long double at_execution_times = 0;
+long double set_delay_sum = 0;
+long double set_execution_times = 0;
+long double FiMinusFjKp_delay_sum = 0;
+long double FiMinusFjKp_execution_times = 0;
+long double FiMinusFjKp2_delay_sum = 0;
+long double FiMinusFjKp2_execution_times = 0;
 
 class SparseMatrix {
 private:
-    vector<Cell> cells;
+    unordered_map<Position, double, Position::HashFunction> cells;
     int width;
     int height;
-
 public:
 
-    SparseMatrix(int width, int height) {
-        this->width = width;
-        this->height = height;
-    }
+    SparseMatrix(int width, int height): width(width), height(height) {}
     
     double at(int row, int column) const {
+        auto start = chrono::steady_clock::now();
         assert(row < this->width);
         assert(row >= 0);
         assert(column < this->height);
         assert(column >= 0);
-        for (Cell cell: cells) {
-            if (cell.row == row && cell.column == column) {
-                return cell.value;
-            }
+        double value = 0;
+        if (this->cells.count(Position(row, column)) != 0) {
+            value = this->cells.at(Position(row, column));
         }
-        return 0;
+        // Verificado que es horriblemente ineficiente esta implementación
+        // try {
+        //     value = this->cells.at(Position(row, column));
+        // } catch(out_of_range e) {}
+        auto end = chrono::steady_clock::now();
+        auto nanoseconds = chrono::duration_cast<chrono::nanoseconds>(end - start).count();
+        at_delay_sum += nanoseconds;
+        at_execution_times++;
+        return value;
     }
 
     void blind_set(int row, int column, double value) {
         if (almost_equals(value, 0)) return;
-        Cell new_cell;
-        new_cell.row = row;
-        new_cell.column = column;
-        new_cell.value = value;
-        this->cells.push_back(new_cell);
+        this->cells[Position(row, column)] = value;
     }
 
     void set(int row, int column, double value) {
-        int index;
-        for (auto it = this->cells.begin(); it != this->cells.end(); ++it) {
-            if (it->row == row && it->column == column) {
-                if (almost_equals(value, 0)) {
-                    this->cells.erase(it);
-                } else {
-                    it->value = value;
-                }
-                return;
-            }
-            index++;
+        auto start = chrono::steady_clock::now();
+        if (almost_equals(value, 0)) {
+            this->cells.erase(Position(row, column));
+        } else {
+            this->cells[Position(row, column)] = value;
         }
-        if (almost_equals(value, 0)) return;
-        Cell new_cell;
-        new_cell.row = row;
-        new_cell.column = column;
-        new_cell.value = value;
-        this->cells.push_back(new_cell);
+        auto end = chrono::steady_clock::now();
+        auto nanoseconds = chrono::duration_cast<chrono::nanoseconds>(end - start).count();
+        set_delay_sum += nanoseconds;
+        set_execution_times++;
     }
 
     int getWidth() {
@@ -89,7 +119,7 @@ public:
     friend std::ostream &operator<<(std::ostream &os, SparseMatrix const &m) {
         for (int row = 0; row < m.height; row++) {
             for (int col = 0; col < m.width; col++) {
-                os << m.at(row, col) << " ";
+                os << right << setw(10) << m.at(row, col) << " ";
             }
             os << endl;
         }
@@ -100,23 +130,11 @@ public:
         assert(this->width == a.width);
         assert(this->height == a.height);
         SparseMatrix response = SparseMatrix(this->width, this->height);
-        vector<Cell> modifyingCells(this->cells.begin(), this->cells.end());
-        modifyingCells.insert(modifyingCells.end(), a.cells.begin(), a.cells.end());
-        
-        while (modifyingCells.size() > 0) {
-            Cell current = modifyingCells.back();
-            modifyingCells.pop_back();
-            Cell other = Cell();
-            other.value = 0;
-            for (int i = 0; i < modifyingCells.size(); i++) {
-                Cell cell = modifyingCells[i];
-                if (cell.row == current.row && cell.column == current.column) {
-                    other = cell;
-                    modifyingCells.erase(modifyingCells.begin() + i);
-                    break;
-                }
-            }
-            response.blind_set(current.row, current.column, current.value + other.value);
+        for (auto &cell: this->cells) {
+            response.blind_set(cell.first.row, cell.first.column, cell.second);
+        }
+        for (auto &cell: a.cells) {
+            response.set(cell.first.row, cell.first.column, response.at(cell.first.row, cell.first.column) + cell.second);
         }
         return response;
     }
@@ -125,41 +143,19 @@ public:
         assert(this->width == a.width);
         assert(this->height == a.height);
         SparseMatrix response = SparseMatrix(this->width, this->height);
-        vector<Cell> modifyingCells(this->cells.begin(), this->cells.end());
-        for (int i = 0; i < a.cells.size(); i++) {
-            Cell cell = Cell();
-            cell.row = a.cells[i].row;
-            cell.column = a.cells[i].column;
-            cell.value = -a.cells[i].value;
-            modifyingCells.push_back(cell);
+        for (auto &cell: this->cells) {
+            response.blind_set(cell.first.row, cell.first.column, cell.second);
         }
-        
-        while (modifyingCells.size() > 0) {
-            Cell current = modifyingCells.back();
-            modifyingCells.pop_back();
-            Cell other = Cell();
-            other.value = 0;
-            for (int i = 0; i < modifyingCells.size(); i++) {
-                Cell cell = modifyingCells[i];
-                if (cell.row == current.row && cell.column == current.column) {
-                    other = cell;
-                    modifyingCells.erase(modifyingCells.begin() + i);
-                    break;
-                }
-            }
-            response.blind_set(current.row, current.column, current.value + other.value);
+        for (auto &cell: a.cells) {
+            response.set(cell.first.row, cell.first.column, response.at(cell.first.row, cell.first.column) - cell.second);
         }
         return response;
     }
 
     SparseMatrix operator*(double const &a) {
         SparseMatrix response = SparseMatrix(this->width, this->height);
-        for (Cell cell: cells) {
-            Cell newCell = Cell();
-            newCell.row = cell.row;
-            newCell.column = cell.column;
-            newCell.value = cell.value * a;
-            response.cells.push_back(newCell);
+        for (PositionValuePair cell: cells) {
+            response.blind_set(cell.first.row, cell.first.column, cell.second * a);
         }
         return response;
     }
@@ -183,8 +179,8 @@ public:
     SparseMatrix multiply_rows(vector<double>& by) {
         assert(by.size() == this->height);
         SparseMatrix response = SparseMatrix(this->width, this->height);
-        for (Cell cell: cells) {
-            response.blind_set(cell.row, cell.column, cell.value * by[cell.row]);
+        for (PositionValuePair cell: cells) {
+            response.blind_set(cell.first.row, cell.first.column, cell.second * by[cell.first.row]);
         }
         return response;
     }
@@ -193,30 +189,74 @@ public:
     SparseMatrix multiply_columns(vector<double>& by) {
         assert(by.size() == this->width);
         SparseMatrix response = SparseMatrix(this->width, this->height);
-        for (Cell cell: cells) {
-            response.blind_set(cell.row, cell.column, cell.value * by[cell.column]);
+        for (PositionValuePair cell: cells) {
+            response.blind_set(cell.first.row, cell.first.column, cell.second * by[cell.first.column]);
         }
         return response;
     }
+
+    void Fi_minus_Fj_k(int fila1, int fila2, double multiplicador) {
+        auto start = chrono::steady_clock::now();
+        // TODO Averiguar cómo se puede mejorar la eficiencia de esto
+        // for (PositionValuePair cell: cells) {
+        //     if (cell.first.row == fila2) {
+        //         this->set(fila1, cell.first.column, this->at(fila1, cell.first.column) - cell.second * multiplicador);
+        //     }
+        // }
+        for (int col = 0; col < this->width; col++) {
+            if (this->cells.count(Position(fila2, col)) != 0) {
+                this->set(fila1, col, this->at(fila1, col) - this->at(fila2, col) * multiplicador);
+            }
+        }
+        auto end = chrono::steady_clock::now();
+        auto nanoseconds = chrono::duration_cast<chrono::nanoseconds>(end - start).count();
+        FiMinusFjKp_delay_sum += nanoseconds;
+        FiMinusFjKp_execution_times++;
+    }
+
+    void debug() {
+        cout << "<<<<<<<<<<< DEBUG <<<<<<<<<<<" << endl;
+        cout << "Tamano del hash table: " << this->cells.size() << endl;
+        cout << "AT Function average time (nanoseconds): " << at_delay_sum / at_execution_times << endl;
+        cout << "SET Function average time (nanoseconds): " << set_delay_sum / set_execution_times << endl;
+        cout << "Fi_minus_Fj_k Function average time (nanoseconds): " << FiMinusFjKp_delay_sum / FiMinusFjKp_execution_times << endl;
+        cout << "<<<<<<<<<<< DEBUG <<<<<<<<<<<" << endl;
+        at_delay_sum = 0;
+        set_delay_sum = 0;
+        FiMinusFjKp_delay_sum = 0;
+        FiMinusFjKp2_delay_sum = 0;
+        at_execution_times = 0;
+        set_execution_times = 0;
+        FiMinusFjKp_execution_times = 0;
+        FiMinusFjKp2_execution_times = 0;
+    }
 };
 
-void FiMinusFjK(SparseMatrix &A, int fila1, int fila2, double multiplicador) {
-    for (int col = 0; col < A.getWidth(); col++) {
-        A.set(fila1, col, A.at(fila1, col) - A.at(fila2, col) * multiplicador);
-    }
-}
+// Deprecada por ineficiente :(
+// void Fi_minus_Fj_k(SparseMatrix &A, int fila1, int fila2, double multiplicador) {
+//     for (int col = 0; col < A.getWidth(); col++) {
+//         A.set(fila1, col, A.at(fila1, col) - A.at(fila2, col) * multiplicador);
+//     }
+// }
 
 void eliminacion_gaussiana(SparseMatrix &A, vector<double> &b) {
     for (int col = 0; col < A.getWidth(); col++) {
+        if (col % 100 == 0) {
+            cout << "Eliminacion gaussiana, columna " << col << endl;
+            A.debug();
+            // cout << A;
+        }
+        double diagonal = A.at(col, col);
+        assert(!almost_equals(diagonal, 0));
         for (int fila = col + 1; fila < A.getHeight(); fila++) {
             // Fx - c * Fy
-            double diagonal = A.at(col, col);
-            assert(!almost_equals(diagonal, 0));
             double c = A.at(fila, col) / diagonal;
             int Fx = fila;
             int Fy = col;
             if (!almost_equals(c, 0)) {
-                FiMinusFjK(A, Fx, Fy, c);
+                // cout << "Aplicando F" << Fx+1 << " = F" << Fx+1 << " - " << c << " * F" << Fy+1 << endl;
+                A.Fi_minus_Fj_k(Fx, Fy, c);
+                // Fi_minus_Fj_k(A, Fx, Fy, c);
                 b[Fx] -= b[Fy] * c;
             }
         }
@@ -261,6 +301,7 @@ void normalizar_vector(vector<double> &v) {
 
 //--------------------------------------------MAIN-------------------------------------------------------
 int main(int argc, char** argv) {
+    auto start = chrono::steady_clock::now();
 
     // Nos quedamos con los parametros de entrada
     string input_file;
@@ -305,25 +346,32 @@ int main(int argc, char** argv) {
     SparseMatrix IpWD = identity - pWD;
 
     // Resolver sistemas de IpWD = (1, 1, ..., 1);
-    cout << "W:" << endl;
-    cout << pW;
-    cout << "I - pWD:" << endl;
-    cout << IpWD;
+    // cout << "pW:" << endl;
+    // cout << pW;
+    // cout << "D (la diagonal):" << endl;
+    // mostrar_vector(d);
+    // cout << "pWD:" << endl;
+    // cout << pWD;
+    // cout << "I - pWD:" << endl;
+    // cout << IpWD;
     vector<double> b(cant_paginas, 1);
     // Eliminación gaussiana
+    cout << "Iniciando eliminacion gaussiana" << endl;
     eliminacion_gaussiana(IpWD, b);
-    cout << "Matriz resultante de eliminacion gaussiana:" << endl;
-    cout << IpWD;
-    cout << "b resultante de eliminacion gaussiana: ";
-    mostrar_vector(b);
+    // cout << "Matriz resultante de eliminacion gaussiana:" << endl;
+    // cout << IpWD;
+    // cout << "b resultante de eliminacion gaussiana: ";
+    // mostrar_vector(b);
     // Resolvemos la matriz triangular resultante de la eliminación gaussiana
+    cout << "Iniciando resolucion sistema triangular" << endl;
     vector<double> respuestas = resolucion_matriz_triangular_superior(IpWD, b);
-    cout << "Respuestas: ";
-    mostrar_vector(respuestas);
+    // cout << "Respuestas: ";
+    // mostrar_vector(respuestas);
     // Normalizamos el vector respuestas
     normalizar_vector(respuestas);
-    cout << "Respuestas normalizadas: ";
-    mostrar_vector(respuestas);
+    // cout << "Respuestas normalizadas: ";
+    // mostrar_vector(respuestas);
+    IpWD.debug();
     
     
     ofstream fout (input_file + ".out");
@@ -332,6 +380,10 @@ int main(int argc, char** argv) {
         fout << current_rating << "\n";
     }
     fout.close();
+
+    auto end = chrono::steady_clock::now();
+    auto nanoseconds = chrono::duration_cast<chrono::nanoseconds>(end - start).count();
+    cout << "Execution time (nanoseconds): " << nanoseconds << endl;
 
     return 0;
 }
