@@ -316,9 +316,15 @@ int main(int argc, char** argv) {
 
     // Leemos el input
     fstream fin (input_file);
+    if (fin.fail()) {
+        cout << "Error al abrir el archivo: " << input_file << endl;
+        return -1;
+    }
+
     int cant_paginas = 0;
     int cant_total_links = 0;
     fin >> cant_paginas >> cant_total_links;
+    cout << input_file << " " << p << endl;
 
     vector<double> d(cant_paginas, 0);
     SparseMatrix pW = SparseMatrix(cant_paginas, cant_paginas);
