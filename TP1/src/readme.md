@@ -10,7 +10,7 @@ Esta carpeta contiene el archivo tp1.cpp donde se encuentra la implementación d
 
 ## Generación del ejecutable
 
-Esto se hace como cualquier script de C++, con la excepción que hay que agregarle el flag `-lstdc++`, no sabemos la razón exacta de la necesidad de este flag pero sin él va a tirar error.
+Esto se hace como cualquier script de C++, con la excepción que hay que agregarle el flag `-lstdc++`, no sabemos la razón exacta de la necesidad de este flag pero sin él la compilacion va a fallar.
 
 - En Linux: `gcc tp1.cpp -o tp1 -lstdc++`
 - En Windows: `gcc tp1.cpp -o tp1.exe -lstdc++`
