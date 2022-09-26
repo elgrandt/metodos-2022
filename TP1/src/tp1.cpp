@@ -51,14 +51,6 @@ struct Position {
 };
 
 typedef pair<const Position, double> PositionValuePair;
-long double at_delay_sum = 0;
-long double at_execution_times = 0;
-long double set_delay_sum = 0;
-long double set_execution_times = 0;
-long double FiMinusFjKp_delay_sum = 0;
-long double FiMinusFjKp_execution_times = 0;
-long double FiMinusFjKp2_delay_sum = 0;
-long double FiMinusFjKp2_execution_times = 0;
 
 class SparseMatrix {
 private:
@@ -70,7 +62,6 @@ public:
     SparseMatrix(int width, int height): width(width), height(height) {}
     
     double at(int row, int column) const {
-        auto start = chrono::steady_clock::now();
         assert(row < this->width);
         assert(row >= 0);
         assert(column < this->height);
@@ -83,10 +74,6 @@ public:
         // try {
         //     value = this->cells.at(Position(row, column));
         // } catch(out_of_range e) {}
-        auto end = chrono::steady_clock::now();
-        auto nanoseconds = chrono::duration_cast<chrono::nanoseconds>(end - start).count();
-        at_delay_sum += nanoseconds;
-        at_execution_times++;
         return value;
     }
 
@@ -96,16 +83,11 @@ public:
     }
 
     void set(int row, int column, double value) {
-        auto start = chrono::steady_clock::now();
         if (almost_equals(value, 0)) {
             this->cells.erase(Position(row, column));
         } else {
             this->cells[Position(row, column)] = value;
         }
-        auto end = chrono::steady_clock::now();
-        auto nanoseconds = chrono::duration_cast<chrono::nanoseconds>(end - start).count();
-        set_delay_sum += nanoseconds;
-        set_execution_times++;
     }
 
     int getWidth() {
@@ -196,39 +178,12 @@ public:
     }
 
     void Fi_minus_Fj_k(int fila1, int fila2, double multiplicador) {
-        auto start = chrono::steady_clock::now();
         // TODO Averiguar cómo se puede mejorar la eficiencia de esto
-        // for (PositionValuePair cell: cells) {
-        //     if (cell.first.row == fila2) {
-        //         this->set(fila1, cell.first.column, this->at(fila1, cell.first.column) - cell.second * multiplicador);
-        //     }
-        // }
         for (int col = 0; col < this->width; col++) {
             if (this->cells.count(Position(fila2, col)) != 0) {
                 this->set(fila1, col, this->at(fila1, col) - this->at(fila2, col) * multiplicador);
             }
         }
-        auto end = chrono::steady_clock::now();
-        auto nanoseconds = chrono::duration_cast<chrono::nanoseconds>(end - start).count();
-        FiMinusFjKp_delay_sum += nanoseconds;
-        FiMinusFjKp_execution_times++;
-    }
-
-    void debug() {
-        cout << "<<<<<<<<<<< DEBUG <<<<<<<<<<<" << endl;
-        cout << "Tamano del hash table: " << this->cells.size() << endl;
-        cout << "AT Function average time (nanoseconds): " << at_delay_sum / at_execution_times << endl;
-        cout << "SET Function average time (nanoseconds): " << set_delay_sum / set_execution_times << endl;
-        cout << "Fi_minus_Fj_k Function average time (nanoseconds): " << FiMinusFjKp_delay_sum / FiMinusFjKp_execution_times << endl;
-        cout << "<<<<<<<<<<< DEBUG <<<<<<<<<<<" << endl;
-        at_delay_sum = 0;
-        set_delay_sum = 0;
-        FiMinusFjKp_delay_sum = 0;
-        FiMinusFjKp2_delay_sum = 0;
-        at_execution_times = 0;
-        set_execution_times = 0;
-        FiMinusFjKp_execution_times = 0;
-        FiMinusFjKp2_execution_times = 0;
     }
 };
 
@@ -242,9 +197,8 @@ public:
 void eliminacion_gaussiana(SparseMatrix &A, vector<double> &b) {
     for (int col = 0; col < A.getWidth(); col++) {
         if (col % 100 == 0) {
+            // Dejado para indicar progreso del algoritmo.
             cout << "Eliminacion gaussiana, columna " << col << endl;
-            A.debug();
-            // cout << A;
         }
         double diagonal = A.at(col, col);
         assert(!almost_equals(diagonal, 0));
@@ -254,7 +208,6 @@ void eliminacion_gaussiana(SparseMatrix &A, vector<double> &b) {
             int Fx = fila;
             int Fy = col;
             if (!almost_equals(c, 0)) {
-                // cout << "Aplicando F" << Fx+1 << " = F" << Fx+1 << " - " << c << " * F" << Fy+1 << endl;
                 A.Fi_minus_Fj_k(Fx, Fy, c);
                 // Fi_minus_Fj_k(A, Fx, Fy, c);
                 b[Fx] -= b[Fy] * c;
@@ -306,12 +259,12 @@ int main(int argc, char** argv) {
     // Nos quedamos con los parametros de entrada
     string input_file;
     double p = 1;
-    if (argc >= 2) {
+    if (argc < 3) {
+        cerr<<"Ingreso incorrecto de parametros, uso correcto es ./tp1 txtInput p" <<endl;
+        return 0;
+    } else {
         input_file = argv[1];
         p = stod(argv[2]);
-    } else {
-        cerr<<"Ingreso incorrecto de parametros, uso correcto es /TP1 txtInput p" <<endl;
-        return 0;
     }
 
     // Leemos el input
@@ -351,33 +304,15 @@ int main(int argc, char** argv) {
 
     SparseMatrix IpWD = identity - pWD;
 
-    // Resolver sistemas de IpWD = (1, 1, ..., 1);
-    // cout << "pW:" << endl;
-    // cout << pW;
-    // cout << "D (la diagonal):" << endl;
-    // mostrar_vector(d);
-    // cout << "pWD:" << endl;
-    // cout << pWD;
-    // cout << "I - pWD:" << endl;
-    // cout << IpWD;
     vector<double> b(cant_paginas, 1);
     // Eliminación gaussiana
     cout << "Iniciando eliminacion gaussiana" << endl;
     eliminacion_gaussiana(IpWD, b);
-    // cout << "Matriz resultante de eliminacion gaussiana:" << endl;
-    // cout << IpWD;
-    // cout << "b resultante de eliminacion gaussiana: ";
-    // mostrar_vector(b);
     // Resolvemos la matriz triangular resultante de la eliminación gaussiana
     cout << "Iniciando resolucion sistema triangular" << endl;
     vector<double> respuestas = resolucion_matriz_triangular_superior(IpWD, b);
-    // cout << "Respuestas: ";
-    // mostrar_vector(respuestas);
     // Normalizamos el vector respuestas
     normalizar_vector(respuestas);
-    // cout << "Respuestas normalizadas: ";
-    // mostrar_vector(respuestas);
-    IpWD.debug();
     
     string input_file_name = input_file.substr(input_file.find_last_of("/\\") + 1);
     ofstream fout (input_file_name + ".out");
