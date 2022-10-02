@@ -1,2 +1,5 @@
 .vscode
 *.out
+*.o
+tp2
+tp2.exe

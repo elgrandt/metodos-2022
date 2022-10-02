@@ -11,16 +11,18 @@ Esta carpeta contiene el archivo tp2.cpp donde se encuentra la implementación d
 ## Generación del ejecutable
 
 Esto se hace como cualquier script de C++:
-<!-- 
-- En Linux: `g++ tp1.cpp -o tp2`
-- En Windows: `g++ tp1.cpp -o tp2.exe` -->
+
+- En Linux: `g++ -c *.cpp && g++ *.o -o tp2`
+- En Windows: `g++ -c *.cpp && g++ *.o -o tp2.exe`
 
 ## Ejecución del script
 
 Siguiendo las pautas del TP, la ejecución tiene la siguiente pinta:
 
-<!-- - En Linux: `./tp1 archivo p`
-- En Windows: `./tp1.exe archivo p` -->
+- En Linux: `./tp2 archivo #iteraciones tolerancia`
+- En Windows: `./tp2.exe archivo #iteraciones tolerancia`
+
+Ejemplo: `./tp2 ../tests/karateclub.txt 10 0.0001`
 
 ## Experimentación
 
