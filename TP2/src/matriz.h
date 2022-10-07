@@ -18,6 +18,7 @@ private:
 public:
 
     SparseMatrix(int width, int height);
+    SparseMatrix(const SparseMatrix& other);
     
     double at(int row, int column) const;
 

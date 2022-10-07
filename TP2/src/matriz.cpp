@@ -4,6 +4,8 @@
 #include <cmath>
 
 SparseMatrix::SparseMatrix(int width, int height): width(width), height(height) {}
+
+SparseMatrix::SparseMatrix(const SparseMatrix& other): width(other.width), height(other.height), cells(other.cells) {}
     
 double SparseMatrix::at(int row, int column) const {
     assert(row < this->height);
@@ -76,7 +78,7 @@ SparseMatrix SparseMatrix::operator*(SparseMatrix const &a) {
     assert(this->width == a.height);
     SparseMatrix response = SparseMatrix(a.width, this->height);
     for (int row = 0; row < this->height; row++) {
-        for (int column = 0; column < a.height; column++) {
+        for (int column = 0; column < a.width; column++) {
             double producto_escalar = 0;
             for (int i = 0; i < this->width; i++) {
                 producto_escalar += this->at(row, i) * a.at(i, column);

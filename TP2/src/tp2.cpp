@@ -15,11 +15,12 @@ struct Resultado {
 };
 
 bool converged(SparseMatrix& current, SparseMatrix& previous, double tolerancia) {
-    for (int i = 0; i < current.getHeight(); i++) {
-        if (fabs(current.at(i, 0) - previous.at(i, 0)) > tolerancia)
-            return false;
-    }
-    return true;
+    return fabs(fabs((previous.transpose() * current).at(0, 0)) - 1) < tolerancia;
+    // for (int i = 0; i < current.getHeight(); i++) {
+    //     if (fabs(current.at(i, 0) - previous.at(i, 0)) > tolerancia)
+    //         return false;
+    // }
+    // return true;
 }
 
 Resultado metodo_potencia(SparseMatrix& matriz, int iteraciones, double tolerancia) {
@@ -28,12 +29,17 @@ Resultado metodo_potencia(SparseMatrix& matriz, int iteraciones, double toleranc
     for (int i = 0; i < x0.getHeight(); i++) {
         x0.blind_set(i, 0, 1 + (rand() % 9)); // Lleno x0 de numeros random entre 1 y 10
     }
+    x0 = x0 * (1.0 / x0.norm());
+    cout << "X0 = " << x0.transpose();
     // Iteramos
     SparseMatrix previous = SparseMatrix(0, 0);
     for (int iter = 0; iter < iteraciones; iter++) {
+        cout << "Iteracion " << iter << endl;
         previous = SparseMatrix(x0);
         x0 = matriz * x0;
+        cout << "Resultado de matriz * x0: " << x0.transpose();
         x0 = x0 * (1.0 / x0.norm());
+        cout << "Resultado de normalizar: " << x0.transpose();
         // Comparo x0 con previous
         if (converged(x0, previous, tolerancia))
             break;
@@ -43,7 +49,7 @@ Resultado metodo_potencia(SparseMatrix& matriz, int iteraciones, double toleranc
         return metodo_potencia(matriz, iteraciones, tolerancia);
     }
     // Calculamos el autovalor
-    double autovalor = (x0.transpose() * matriz * x0).at(0, 0);
+    double autovalor = ((x0.transpose() * matriz * x0).at(0, 0) * (1/(x0.transpose() * x0).at(0, 0)));
     // Generamos el resultado
     return Resultado(autovalor, x0);
 }
@@ -93,81 +99,50 @@ int main(int argc, char** argv) {
         return -1;
     }
     SparseMatrix matriz(vector_matriz[0].size(), vector_matriz.size());
-    for (int col = 0; col < vector_matriz.size(); col++) {
-        for (int row = 0; row < vector_matriz[col].size(); row++) {
-            matriz.blind_set(row, col, vector_matriz[col][row]);
+    for (int row = 0; row < vector_matriz.size(); row++) {
+        for (int col = 0; col < vector_matriz[row].size(); col++) {
+            matriz.blind_set(row, col, vector_matriz[row][col]);
         }
     }
 
     int seed = 1001;
     srand(seed);
 
-    Resultado primer_resultado = metodo_potencia(matriz, numero_iteraciones, tolerancia);
-    cout << primer_resultado.autovalor << endl;
-    cout << primer_resultado.autovector;
+    SparseMatrix matriz_actual(matriz);
+    vector<Resultado> resultados;
 
-    // int cant_paginas = 0;
-    // int cant_total_links = 0;
-    // fin >> cant_paginas >> cant_total_links;
-    // cout << input_file << " " << p << endl;
-
-    // vector<double> d(cant_paginas, 0);
-    // SparseMatrix pW = SparseMatrix(cant_paginas, cant_paginas);
-    // for (int i = 0; i < cant_total_links; ++i) {
-    //     int from, to;
-    //     fin >> from;
-    //     fin >> to;
-    //     pW.blind_set(to - 1, from - 1, p);
-    //     d[from-1]++;
-    // }
-    // fin.close();
-    // // Hacemos Di = 1/Di
-    // for (int i = 0; i < cant_paginas; i++) {
-    //     if (d[i] != 0)
-    //         d[i] = 1.0/d[i];
-    // }
+    for (int i = 0; i < matriz.getHeight(); i++) {
+        cout << "<<<<<<<<<<<<<< Comenzando calculo del autovalor " << i+1 << " con la matriz:" << endl;
+        cout << matriz_actual;
+        Resultado resultado = metodo_potencia(matriz_actual, numero_iteraciones, tolerancia);
+        resultados.push_back(resultado);
+        matriz_actual = matriz_actual - ( resultado.autovector * resultado.autovector.transpose() );
+        cout << "Autovalor " << i+1 << ": " << resultado.autovalor << endl;
+        cout << "Autovector " << i+1 << ": " << resultado.autovector.transpose();
+        cout << "A*v = " << endl;
+        cout << (matriz * resultado.autovector).transpose();
+        cout  << "Autovalor * v = " << endl;
+        cout << (resultado.autovector * resultado.autovalor).transpose();
+    }
     
-    // SparseMatrix pWD = pW.multiply_columns(d);
-
-    // SparseMatrix identity(cant_paginas, cant_paginas);
-    // for (int i = 0; i < cant_paginas; i++) {
-    //     identity.blind_set(i, i, 1);
-    // }
-    // cout << "Iniciando eliminacion gaussiana" << endl;
-    // eliminacion_gaussiana(IpWD, b);
-    // // Resolvemos la matriz triangular resultante de la eliminación gaussiana
-    // cout << "Iniciando resolucion sistema triangular" << endl;
-    // vector<double> respuestas = resolucion_matriz_triangular_superior(IpWD, b);
-    // // Normalizamos el vector respuestas
-    // normalizar_vector(respuestas);
+    string input_file_name = input_file.substr(input_file.find_last_of("/\\") + 1);
+    ofstream fout (input_file_name + ".autovalores.out");
+    for (Resultado resultado: resultados) {
+        fout << resultado.autovalor << "\n";
+    }
+    fout.close();
     
-    // string input_file_name = input_file.substr(input_file.find_last_of("/\\") + 1);
-    // ofstream fout (input_file_name + ".out");
-    // fout << p << "\n";
-    // for (double current_rating: respuestas){
-    //     fout << current_rating << "\n";
-    // }
-    // fout.close();
-
-    // SparseMatrix IpWD = identity - pWD;
-
-    // vector<double> b(cant_paginas, 1);
-    // // Eliminación gaussiana
-    // cout << "Iniciando eliminacion gaussiana" << endl;
-    // eliminacion_gaussiana(IpWD, b);
-    // // Resolvemos la matriz triangular resultante de la eliminación gaussiana
-    // cout << "Iniciando resolucion sistema triangular" << endl;
-    // vector<double> respuestas = resolucion_matriz_triangular_superior(IpWD, b);
-    // // Normalizamos el vector respuestas
-    // normalizar_vector(respuestas);
-    
-    // string input_file_name = input_file.substr(input_file.find_last_of("/\\") + 1);
-    // ofstream fout (input_file_name + ".out");
-    // fout << p << "\n";
-    // for (double current_rating: respuestas){
-    //     fout << current_rating << "\n";
-    // }
-    // fout.close();
+    ofstream fout2 (input_file_name + ".autovectores.out");
+    for (int linea = 0; linea < resultados[0].autovector.getHeight(); linea++) {
+        for (int resultado = 0; resultado < resultados.size(); resultado++) {
+            fout2 << resultados[resultado].autovector.at(linea, 0);
+            if (resultado != resultados.size() -1) {
+                fout2 << " ";
+            }
+        }
+        fout2 << "\n";
+    }
+    fout2.close();
 
     auto end = chrono::steady_clock::now();
     auto nanoseconds = chrono::duration_cast<chrono::nanoseconds>(end - start).count();
