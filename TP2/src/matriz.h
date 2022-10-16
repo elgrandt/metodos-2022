@@ -33,7 +33,8 @@ public:
     friend ostream& operator<<(ostream &os, SparseMatrix const &m) {
         for (int row = 0; row < m.height; row++) {
             for (int col = 0; col < m.width; col++) {
-                os << right << setw(10) << m.at(row, col) << " ";
+                // os << right << setw(10) << m.at(row, col) << " ";
+                os << m.at(row, col) << " ";
             }
             os << endl;
         }

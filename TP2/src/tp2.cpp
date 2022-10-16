@@ -15,6 +15,11 @@ struct Resultado {
 };
 
 bool converged(SparseMatrix& current, SparseMatrix& previous, double tolerancia) {
+    if (fabs(fabs((previous.transpose() * current).at(0, 0)) - 0.87867) < 1e-4) {
+        cout << "Current: " << current.transpose();
+        cout << "Previous: " << previous.transpose();
+    }
+    cout << fabs((previous.transpose() * current).at(0, 0)) << endl;
     return fabs(fabs((previous.transpose() * current).at(0, 0)) - 1) < tolerancia;
 }
 
@@ -28,6 +33,7 @@ Resultado metodo_potencia(SparseMatrix& matriz, int iteraciones, double toleranc
     // Iteramos
     SparseMatrix previous = SparseMatrix(0, 0);
     for (int iter = 0; iter < iteraciones; iter++) {
+        cout << "Iteracion " << iter << endl;
         previous = SparseMatrix(x0);
         x0 = matriz * x0;
         x0 = x0 * (1.0 / x0.norm());
@@ -93,13 +99,20 @@ int main(int argc, char** argv) {
         }
     }
 
-    int seed = 1001;
+    int seed = 1002;
     srand(seed);
+    string input_file_name = input_file.substr(input_file.find_last_of("/\\") + 1);
 
     SparseMatrix matriz_actual(matriz);
     vector<Resultado> resultados;
 
     for (int i = 0; i < matriz.getHeight(); i++) {
+        // ofstream fout3 (input_file_name + ".matriz.iteracion" + to_string(i+1) + ".out");
+        // fout3 << matriz_actual;
+        // fout3.close();
+
+
+
         Resultado resultado = metodo_potencia(matriz_actual, numero_iteraciones, tolerancia);
         resultados.push_back(resultado);
         cout << "Autovalor " << i+1 << ": " << resultado.autovalor << endl;
@@ -107,7 +120,6 @@ int main(int argc, char** argv) {
         matriz_actual = matriz_actual - ( resultado.autovector * resultado.autovector.transpose() ) * resultado.autovalor;
     }
     
-    string input_file_name = input_file.substr(input_file.find_last_of("/\\") + 1);
     ofstream fout (input_file_name + ".autovalores.out");
     for (Resultado resultado: resultados) {
         fout << resultado.autovalor << "\n";
