@@ -15,11 +15,6 @@ struct Resultado {
 };
 
 bool converged(SparseMatrix& current, SparseMatrix& previous, double tolerancia) {
-    if (fabs(fabs((previous.transpose() * current).at(0, 0)) - 0.87867) < 1e-4) {
-        cout << "Current: " << current.transpose();
-        cout << "Previous: " << previous.transpose();
-    }
-    cout << fabs((previous.transpose() * current).at(0, 0)) << endl;
     return fabs(fabs((previous.transpose() * current).at(0, 0)) - 1) < tolerancia;
 }
 
@@ -33,13 +28,14 @@ Resultado metodo_potencia(SparseMatrix& matriz, int iteraciones, double toleranc
     // Iteramos
     SparseMatrix previous = SparseMatrix(0, 0);
     for (int iter = 0; iter < iteraciones; iter++) {
-        cout << "Iteracion " << iter << endl;
         previous = SparseMatrix(x0);
         x0 = matriz * x0;
         x0 = x0 * (1.0 / x0.norm());
         // Comparo x0 con previous
-        if (converged(x0, previous, tolerancia))
+        if (converged(x0, previous, tolerancia)) {
+            cout << "Convergio en la iteracion " << iter << endl;
             break;
+        }
     }
     // Si no convergio probamos de nuevo
     if (!converged(x0, previous, tolerancia)) {
@@ -56,14 +52,16 @@ int main(int argc, char** argv) {
 
     // Nos quedamos con los parametros de entrada
     string input_file;
+    int cantidad_a_calcular;
     int numero_iteraciones = 1;
     double tolerancia = 0.1;
-    if (argc != 4) {
-        throw runtime_error("Ingreso incorrecto de parametros, uso correcto es ./tp2 archivo #iteraciones tolerancia");
+    if (argc != 5) {
+        throw runtime_error("Ingreso incorrecto de parametros, uso correcto es ./tp2 archivo cantidad #iteraciones tolerancia");
     } else {
         input_file = argv[1];
-        numero_iteraciones = stoi(argv[2]);
-        tolerancia = stod(argv[3]);
+        cantidad_a_calcular = stoi(argv[2]);
+        numero_iteraciones = stoi(argv[3]);
+        tolerancia = stod(argv[4]);
     }
 
     // Leemos el input
@@ -99,24 +97,17 @@ int main(int argc, char** argv) {
         }
     }
 
-    int seed = 1002;
+    int seed = 445;
     srand(seed);
     string input_file_name = input_file.substr(input_file.find_last_of("/\\") + 1);
 
     SparseMatrix matriz_actual(matriz);
     vector<Resultado> resultados;
 
-    for (int i = 0; i < matriz.getHeight(); i++) {
-        // ofstream fout3 (input_file_name + ".matriz.iteracion" + to_string(i+1) + ".out");
-        // fout3 << matriz_actual;
-        // fout3.close();
-
-
+    for (int i = 0; i < cantidad_a_calcular; i++) {
 
         Resultado resultado = metodo_potencia(matriz_actual, numero_iteraciones, tolerancia);
         resultados.push_back(resultado);
-        cout << "Autovalor " << i+1 << ": " << resultado.autovalor << endl;
-        cout << "Autovector " << i+1 << ": " << resultado.autovector.transpose();
         matriz_actual = matriz_actual - ( resultado.autovector * resultado.autovector.transpose() ) * resultado.autovalor;
     }
     
