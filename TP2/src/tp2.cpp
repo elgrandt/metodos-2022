@@ -21,6 +21,7 @@ bool converged(SparseMatrix& current, SparseMatrix& previous, double tolerancia)
 Resultado metodo_potencia(SparseMatrix& matriz, int iteraciones, double tolerancia) {
     // Generamos x0
     SparseMatrix x0(1, matriz.getWidth());
+    srand(446);
     for (int i = 0; i < x0.getHeight(); i++) {
         x0.blind_set(i, 0, 1 + (rand() % 9)); // Lleno x0 de numeros random entre 1 y 10
     }
@@ -33,6 +34,9 @@ Resultado metodo_potencia(SparseMatrix& matriz, int iteraciones, double toleranc
         x0 = x0 * (1.0 / x0.norm());
         // Comparo x0 con previous
         if (converged(x0, previous, tolerancia)) {
+            ofstream fout ("iteraciones.out", ios_base::app);
+            fout << iter << "\n";
+            fout.close();
             cout << "Convergio en la iteracion " << iter << endl;
             break;
         }
@@ -97,8 +101,6 @@ int main(int argc, char** argv) {
         }
     }
 
-    int seed = 445;
-    srand(seed);
     string input_file_name = input_file.substr(input_file.find_last_of("/\\") + 1);
 
     SparseMatrix matriz_actual(matriz);
