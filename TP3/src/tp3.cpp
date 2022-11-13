@@ -98,6 +98,12 @@ VectorXd resolver_algoritmo_iterativo(SpMat& T, VectorXd& c) {
     for (int iteracion = 0; iteracion < max_iteraciones; iteracion++) {
         VectorXd prevX(x);
         x = (T * x) + c;
+        // Impresión de iteraciones solo para el experimento de convergencia
+        // ofstream fout ("iteraciones." + to_string(iteracion) + ".out", ios_base::app);
+        // for (int i = 0; i < x.size(); i++) {
+        //     fout << x(i) / x.sum() << "\n";
+        // }
+        // fout.close();
         if (checkear_convergencia(x, prevX, tolerancia)) {
             convergio = true;
             break;

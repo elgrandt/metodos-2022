@@ -12,8 +12,8 @@ Esta carpeta contiene el archivo tp3.cpp donde se encuentra la implementación d
 
 Esto se hace como cualquier script de C++:
 
-- En Linux: `g++ -c *.cpp && g++ *.o -o tp2`g++ -std=c++11  -I ./eigen tp3.cpp -o tp3.exe 
-- En Windows: `g++ -c *.cpp; g++ *.o -o tp2.exe`
+- En Linux: `g++ -std=c++11  -I ./eigen tp3.cpp -o tp3` 
+- En Windows: `g++ -std=c++11  -I ./eigen tp3.cpp -o tp3.exe`
 
 ## Ejecución del script
 
