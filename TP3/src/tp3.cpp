@@ -194,7 +194,6 @@ int main(int argc, char** argv) {
     SpMat IpWD = identity - pWD;
     VectorXd b = VectorXd::Ones(cant_paginas);
 
-    // VectorXd respuestas = resolver_con_eliminacion_gaussiana(IpWD, b);
     VectorXd respuestas;
     if (algorithm == "eg") {
         respuestas = resolver_con_eliminacion_gaussiana(IpWD, b);
