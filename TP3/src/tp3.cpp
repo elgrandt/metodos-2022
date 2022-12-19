@@ -98,11 +98,16 @@ VectorXd resolver_algoritmo_iterativo(SpMat& T, VectorXd& c) {
     for (int iteracion = 0; iteracion < max_iteraciones; iteracion++) {
         VectorXd prevX(x);
         x = (T * x) + c;
+        //////////////////////
         // Impresión de iteraciones solo para el experimento de convergencia
+        //descomentar para correr el experimento de convergencia
+        /*
         ofstream fout ("iteraciones." + to_string(iteracion) + ".out", ios_base::app);
         for (int i = 0; i < x.size(); i++) {
             fout << x(i) / x.sum() << "\n";
         }
+        */
+        ///////////////////////
         fout.close();
         if (checkear_convergencia(x, prevX, tolerancia)) {
             convergio = true;
@@ -128,33 +133,6 @@ VectorXd resolver_con_jacobi(SpMat& matriz, VectorXd& b) {
     return resolver_algoritmo_iterativo(T, c);
 }
 
-/*VectorXd resolver_gauss_seidel(SpMat& matriz, VectorXd& b) {
-    SpMat D = SpMat(matriz.diagonal().asDiagonal());
-    SpMat L = -(matriz.triangularView<Lower>() - D);
-    SpMat U = -(matriz.triangularView<Upper>() - D);
-    SpMat DLinv = getInverse(D-L);
-    SpMat T = DLinv * U;
-    VectorXd c = DLinv * b;
-    return resolver_algoritmo_iterativo(T, c);
-}*/
-
-//implementación de Gauss Seidel con forward substitution
-/*
-Idea del algoritmo:
-x = x_0
-Mientras no converga, o hasta que llegue al máximo de iteraciones hacer:
-    para i desde 1 hasta n:
-        sum = 0;
-        para j desde 1 hasta n:
-            si j != i
-                sum += a[i][j] * x_0
-            fin si
-        fin para
-        x[i] = (b[i] - sum)/a[i][i]
-    fin para
-fin mientras
-return x_0
-*/
 VectorXd resolver_gauss_seidel(SpMat& matriz, VectorXd& b) {
     int max_iteraciones = 1000000;
     double tolerancia = 1e-10;
@@ -174,12 +152,17 @@ VectorXd resolver_gauss_seidel(SpMat& matriz, VectorXd& b) {
             }   
             x[i] = (b[i] - sum) / matriz.coeff(i,i);
         }
+        //////////////////////
         // Impresión de iteraciones solo para el experimento de convergencia
+        //descomentar para correr el experimento de convergencia
+        /*
         ofstream fout ("iteraciones." + to_string(iteracion) + ".out", ios_base::app);
         for (int i = 0; i < x.size(); i++) {
             fout << x(i) / x.sum() << "\n";
         }
         fout.close();
+        */
+        ///////////////////////
         if (checkear_convergencia(x, prevX, tolerancia)) {
             convergio = true;
             break;
