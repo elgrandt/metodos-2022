@@ -32,3 +32,4 @@ Ejemplo: `./tp3 "../tests/test_15_segundos.txt" 0.9 jb`
 ## Experimentación
 
 La experimentación se encuentra en el siguiente archivo: `python/experimentacion.ipynb`.
+Para ejecutar la experimentacion de convergencia hace falta descomentar las lineas del codigo tp3.cpp desde la linea 104 hasta 110 y desde la 158 a la 164 (esto permitira correr solo ese experimento)
