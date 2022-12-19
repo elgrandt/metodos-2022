@@ -99,11 +99,11 @@ VectorXd resolver_algoritmo_iterativo(SpMat& T, VectorXd& c) {
         VectorXd prevX(x);
         x = (T * x) + c;
         // Impresión de iteraciones solo para el experimento de convergencia
-        // ofstream fout ("iteraciones." + to_string(iteracion) + ".out", ios_base::app);
-        // for (int i = 0; i < x.size(); i++) {
-        //     fout << x(i) / x.sum() << "\n";
-        // }
-        // fout.close();
+        ofstream fout ("iteraciones." + to_string(iteracion) + ".out", ios_base::app);
+        for (int i = 0; i < x.size(); i++) {
+            fout << x(i) / x.sum() << "\n";
+        }
+        fout.close();
         if (checkear_convergencia(x, prevX, tolerancia)) {
             convergio = true;
             break;
@@ -175,11 +175,11 @@ VectorXd resolver_gauss_seidel(SpMat& matriz, VectorXd& b) {
             x[i] = (b[i] - sum) / matriz.coeff(i,i);
         }
         // Impresión de iteraciones solo para el experimento de convergencia
-        // ofstream fout ("iteraciones." + to_string(iteracion) + ".out", ios_base::app);
-        // for (int i = 0; i < x.size(); i++) {
-        //     fout << x(i) / x.sum() << "\n";
-        // }
-        // fout.close();
+        ofstream fout ("iteraciones." + to_string(iteracion) + ".out", ios_base::app);
+        for (int i = 0; i < x.size(); i++) {
+            fout << x(i) / x.sum() << "\n";
+        }
+        fout.close();
         if (checkear_convergencia(x, prevX, tolerancia)) {
             convergio = true;
             break;
