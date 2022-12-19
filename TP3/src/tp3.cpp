@@ -106,9 +106,9 @@ VectorXd resolver_algoritmo_iterativo(SpMat& T, VectorXd& c) {
         for (int i = 0; i < x.size(); i++) {
             fout << x(i) / x.sum() << "\n";
         }
+        fout.close();
         */
         ///////////////////////
-        fout.close();
         if (checkear_convergencia(x, prevX, tolerancia)) {
             convergio = true;
             break;
